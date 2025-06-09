@@ -1,0 +1,27 @@
+{
+  "name": "ejercitacion_node",
+  "version": "1.0.0",
+  "description": "ejercitacion node okseniuk paterno",
+  "homepage": "https://github.com/jpaterno11/EjercitacionNode#readme",
+  "bugs": {
+    "url": "https://github.com/jpaterno11/EjercitacionNode/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jpaterno11/EjercitacionNode.git"
+  },
+  "license": "ISC",
+  "author": "jpat",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "server": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "http-status-codes": "^2.3.0",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.0"
+  }
+}
