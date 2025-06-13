@@ -30,7 +30,7 @@ app.use(express.json()); // Middleware para parsear y comprender JSON
 
 //
 
-app.get('/api/alumnos/', async (req, res) => {
+app.get('/api/alumnos', async (req, res) => {
     try {
         const client = new Client(config);
         await client.connect();
@@ -41,7 +41,7 @@ app.get('/api/alumnos/', async (req, res) => {
         res.status(200).json(result.rows);
     }
     catch (error){
-        res.status(500).send("(Internal Server Error) error: " + error.message)
+        res.status(500).send("(Internal Server Error) error: " + error.message + "casi")
     }
 })
 
