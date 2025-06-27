@@ -1,8 +1,9 @@
+import 'dotenv/config'
 const config = {
-    host: "aws-0-sa-east-1.pooler.supabase.com",
-    database: "postgres",
-    user: "postgres.cmomapphxafnzknjudsr",
-    password: "@Databasetp10pati",
-    port: 5342
+    host: process.env.DB_HOST,
+    database: process.env.DB_DATABASE,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT
 }
 export default config;

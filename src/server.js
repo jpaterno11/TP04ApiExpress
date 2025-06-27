@@ -35,17 +35,18 @@ app.get('/api/alumnos', async (req, res) => {
         const client = new Client(config);
         await client.connect();
         const sql = 'SELECT * FROM alumnos';
-        const values = [id];
-        const result = await client.query(sql, values);
+        const result = await client.query(sql);
         await client.end();
         res.status(200).json(result.rows);
     }
     catch (error){
-        res.status(500).send("(Internal Server Error) error: " + error.message + "casi")
+        res.status(500).send("(Internal Server Error) error: " + error.message)
     }
 })
 
-//app.get('/api/alumnos/:id', async (req, res) => {}
+app.get('/api/alumnos/:id', async (req, res) => {
+
+}),
 
 app.post('/api/alumnos/', async (req, res) => {
     try {
@@ -60,7 +61,7 @@ app.post('/api/alumnos/', async (req, res) => {
     catch (error){
         res.status(500).send("(Internal Server Error) error: " + error.message)
     }
-})
+}),
 
 //app.put('/api/alumnos/', async (req, res) => {}
 
