@@ -1,123 +1,104 @@
 import express from "express";
 import cors from "cors";
-import config from './configs/db-config.js';
-import pkg from 'pg';
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const { Client } = pkg;
+// Importar controladores
+import alumnosController from "./controllers/alumnos-controller.js";
+import cursosController from "./controllers/cursos-controller.js";
+
+
+// Importar helper de logs
+import logHelper from "./helpers/log-helper.js";
+
+// Configurar dotenv
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/api/alumnos', async (req, res) => {
-    try {
-        const client = new Client(config);
-        await client.connect();
-        const sql = 'SELECT * FROM alumnos';
-        const result = await client.query(sql);
-        await client.end();
-        res.status(200).json(result.rows);
-    } catch (error) {
-        res.status(500).send("(Internal Server Error) error: " + error.message);
-    }
+// Servir archivos estáticos desde la carpeta uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Middleware de logging
+app.use((req, res, next) => {
+    logHelper.info(`${req.method} ${req.url}`, {
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+    });
+    next();
 });
 
-app.get('/api/alumnos/:id', async (req, res) => {
-    const { id } = req.params;
-    if (isNaN(id)) {
-        return res.status(400).send("El ID debe ser numérico.");
-    }
+// Rutas de Alumnos
+app.get('/api/alumnos', alumnosController.getAllAlumnos);
+app.get('/api/alumnos/:id', alumnosController.getAlumnoById);
+app.post('/api/alumnos', alumnosController.createAlumno);
+app.put('/api/alumnos/:id', alumnosController.updateAlumno);
+app.delete('/api/alumnos/:id', alumnosController.deleteAlumno);
+app.get('/api/alumnos/grupo/:grupoId', alumnosController.getAlumnosByGrupo);
+app.post('/api/alumnos/:id/photo', alumnosController.upload.single('image'), alumnosController.uploadPhoto);
 
-    try {
-        const client = new Client(config);
-        await client.connect();
-        const sql = 'SELECT * FROM alumnos WHERE id = $1';
-        const result = await client.query(sql, [id]);
-        await client.end();
+// Rutas de Cursos
+app.get('/api/cursos', cursosController.getAllCursos);
+app.get('/api/cursos/:id', cursosController.getCursoById);
+app.post('/api/cursos', cursosController.createCurso);
+app.put('/api/cursos/:id', cursosController.updateCurso);
+app.delete('/api/cursos/:id', cursosController.deleteCurso);
+app.get('/api/cursos/duracion', cursosController.getCursosByDuracion);
 
-        if (result.rows.length === 0) {
-            return res.status(404).send("No existe un alumno con ese ID.");
-        }
-
-        res.status(200).json(result.rows[0]);
-    } catch (error) {
-        res.status(500).send("(Internal Server Error) error: " + error.message);
-    }
+// Ruta de prueba
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'API funcionando correctamente',
+        timestamp: new Date().toISOString()
+    });
 });
 
-app.post('/api/alumnos', async (req, res) => {
-    const { nombre, apellido, id_curso, fecha_nacimiento, hace_deportes } = req.body;
-
-    try {
-        const client = new Client(config);
-        await client.connect();
-        const sql = `
-            INSERT INTO alumnos (nombre, apellido, id_curso, fecha_nacimiento, hace_deportes)
-            VALUES ($1, $2, $3, $4, $5)
-        `;
-        const values = [nombre, apellido, id_curso, fecha_nacimiento, hace_deportes];
-        await client.query(sql, values);
-        await client.end();
-
-        res.status(201).send("Alumno creado correctamente.");
-    } catch (error) {
-        res.status(500).send("(Internal Server Error) error: " + error.message);
-    }
+// Middleware de manejo de errores
+app.use((err, req, res, next) => {
+    logHelper.error('Error no manejado en la aplicación', err);
+    res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor',
+        message: err.message
+    });
 });
 
-app.put('/api/alumnos', async (req, res) => {
-    const { id, nombre, apellido, id_curso, fecha_nacimiento, hace_deportes } = req.body;
-
-    if (!id || isNaN(id)) {
-        return res.status(400).send("El ID debe ser numérico y estar presente.");
-    }
-
-    try {
-        const client = new Client(config);
-        await client.connect();
-        const sql = `
-            UPDATE alumnos
-            SET nombre = $1, apellido = $2, id_curso = $3, fecha_nacimiento = $4, hace_deportes = $5
-            WHERE id = $6
-        `;
-        const values = [nombre, apellido, id_curso, fecha_nacimiento, hace_deportes, id];
-        const result = await client.query(sql, values);
-        await client.end();
-
-        if (result.rowCount === 0) {
-            return res.status(404).send("No existe un alumno con ese ID.");
-        }
-
-        res.status(201).send("Alumno actualizado correctamente.");
-    } catch (error) {
-        res.status(500).send("(Internal Server Error) error: " + error.message);
-    }
+// Middleware para rutas no encontradas
+app.use('*', (req, res) => {
+    logHelper.warn('Ruta no encontrada', { method: req.method, url: req.originalUrl });
+    res.status(404).json({
+        success: false,
+        error: 'Ruta no encontrada',
+        message: `La ruta ${req.method} ${req.originalUrl} no existe`
+    });
 });
 
-app.delete('/api/alumnos/:id', async (req, res) => {
-    const { id } = req.params;
-    if (isNaN(id)) {
-        return res.status(400).send("El ID debe ser numérico.");
-    }
-
-    try {
-        const client = new Client(config);
-        await client.connect();
-        const sql = 'DELETE FROM alumnos WHERE id = $1';
-        const result = await client.query(sql, [id]);
-        await client.end();
-
-        if (result.rowCount === 0) {
-            return res.status(404).send("No existe un alumno con ese ID.");
-        }
-
-        res.status(200).send("Alumno eliminado correctamente.");
-    } catch (error) {
-        res.status(500).send("(Internal Server Error) error: " + error.message);
-    }
-});
-
+// Iniciar servidor
 app.listen(port, () => {
-    console.log(`Servidor corriendo en http://localhost:${port}`);
+    logHelper.info(`Servidor iniciado exitosamente en puerto ${port}`);
+    console.log(`🚀 Servidor corriendo en http://localhost:${port}`);
+    console.log(`📚 API de Alumnos y Cursos disponible en http://localhost:${port}/api`);
+    console.log(`🔍 Health check en http://localhost:${port}/api/health`);
+});
+
+// Manejo de señales de terminación
+process.on('SIGINT', () => {
+    logHelper.info('Servidor detenido por señal SIGINT');
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    logHelper.info('Servidor detenido por señal SIGTERM');
+    process.exit(0);
 });
